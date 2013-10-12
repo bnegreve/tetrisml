@@ -12,13 +12,14 @@
 (* To compile this example: ocamlc graphics.cma grtest1.ml -o grtest1 *)
 (*#load "graphics.cma";;*)
 open Graphics;;
-
+open Printf;;
+open Unix;;
 
 let block_size = 10;;
 let block_padding = 2;;
 let screen_width = 640;; 
 let screen_height = 480;;
-
+let lap_length = 1000.; (* in ms *)
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
 
@@ -26,8 +27,8 @@ type piece =
   { pos: block_pos; blocks: block_pos list; color: int};;
 
 type world = {
-  time_stamp: float; 
   current_piece: piece;
+  last_refresh: float; 
 };;
 
 let get_absolute_coords origin point = 
@@ -38,13 +39,13 @@ let get_pixel_coords pos =
     y_pixel = (screen_height - block_size) - (pos.y * block_size); };;
   
 let draw_block_with_pixel_coords x y = 
-  Printf.fprintf stdout "Pos: [%d, %d]\n" x y;
+  Printf.printf "Pos: [%d, %d]\n" x y;
   draw_rect x y block_size block_size; 
   fill_rect (x + block_padding) (y + block_padding) 
     (block_size - (2 * block_padding)) (block_size - (2 * block_padding));;
 
 let print_pos pos = 
-  Printf.fprintf stdout "Pos: [%d, %d]\n" pos.x pos.y;;
+  Printf.printf "Pos: [%d, %d]\n" pos.x pos.y;;
 
 let draw_block pos =
   print_pos pos;
@@ -83,19 +84,28 @@ let push_piece_down piece =
 
 let update world =
   { world with 
-    current_piece = push_piece_down world.current_piece };;
+    current_piece = push_piece_down world.current_piece;
+  };;
+
+let wait_end_of_lap world =
+  let now = Unix.gettimeofday () in 
+  let wait_time = (world.last_refresh +. (lap_length *. 1000.) -. now) in
+  Unix.select [] [] [] ( if wait_time >= 0. then (wait_time /. 1000000.) else 0. ) ;
+    { world with last_refresh = now };;
 
 let draw_world world = 
   clear_graph ();
-  draw_piece world.current_piece;; 
+  draw_piece world.current_piece;
+  world;; 
+
+(* MAIN *)
 
 open_graph " 640x480";;
 let  world = ref {
   current_piece = make_a_piece; 
-  time_stamp = 0.; 
+  last_refresh = 0.; 
 } in while true do
-    world := update !world;
-  draw_world !world;
-  read_line ();
-done;;
+    printf "New lap\n"; 
+    world := wait_end_of_lap (draw_world (update !world))
+  done;;
 
