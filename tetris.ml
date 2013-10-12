@@ -22,6 +22,14 @@ let screen_height = 480;;
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
 
+type piece = 
+  { pos: block_pos; blocks: block_pos list; color: int};;
+
+type world = {
+  time_stamp: float; 
+  current_piece: piece;
+};;
+
 let get_absolute_coords origin point = 
   {x = (origin.x + point.x); y = (origin.y + point.y)};;
 
@@ -42,9 +50,6 @@ let draw_block pos =
   print_pos pos;
   let pixel_pos = get_pixel_coords pos in 
   draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
-
-type piece = 
-  { pos: block_pos; blocks: block_pos list; color: int};;
 
 let make_square_shaped_piece =
   { pos = {x = 0; y = 0};
@@ -76,16 +81,21 @@ let push_piece_down piece =
   {piece with pos
     = { piece.pos with y = (piece.pos.y + 1)}};;
 
-let update current_piece = 
-  current_piece := push_piece_down !current_piece;
-  draw_piece !current_piece; 
-;;
+let update world =
+  { world with 
+    current_piece = push_piece_down world.current_piece };;
+
+let draw_world world = 
+  clear_graph ();
+  draw_piece world.current_piece;; 
 
 open_graph " 640x480";;
-let current_piece = ref make_a_piece in 
-while true do
-  update current_piece;
+let  world = ref {
+  current_piece = make_a_piece; 
+  time_stamp = 0.; 
+} in while true do
+    world := update !world;
+  draw_world !world;
   read_line ();
-  clear_graph ();
 done;;
 
