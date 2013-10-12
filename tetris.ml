@@ -47,14 +47,22 @@ type piece =
   { pos: block_pos; blocks: block_pos list; color: int};;
 
 let make_square_shaped_piece =
-  { pos = {x = 1; y = 1};
+  { pos = {x = 0; y = 0};
     blocks = {x = 0; y = 0}::{x = 1; y = 0}::{x = 1; y = 1}::{x = 0; y = 1}::[]; 
     color = red; };;
+
+let make_l_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = 1; y = 1}::[]; 
+    color = blue; };;
 
 let make_single_block_piece =
   { pos = {x = 0; y = 0};
     blocks = {x = 0; y = 0}::[]; 
     color = red; };;
+
+let make_a_piece = 
+  make_l_shaped_piece;;
 
 let rec draw_block_list pos blocks =
   List.map (function block -> draw_block (get_absolute_coords pos block)) blocks;;
@@ -64,7 +72,20 @@ let draw_piece piece =
   set_color piece.color; 
   draw_block_list piece.pos piece.blocks;;
 
+let push_piece_down piece = 
+  {piece with pos
+    = { piece.pos with y = (piece.pos.y + 1)}};;
+
+let update current_piece = 
+  current_piece := push_piece_down !current_piece;
+  draw_piece !current_piece; 
+;;
+
 open_graph " 640x480";;
-(* draw_piece make_single_block_piece;; *)
-draw_piece make_square_shaped_piece;;
-read_line ();;
+let current_piece = ref make_a_piece in 
+while true do
+  update current_piece;
+  read_line ();
+  clear_graph ();
+done;;
+
