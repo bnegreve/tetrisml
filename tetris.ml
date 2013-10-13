@@ -13,7 +13,7 @@
 (*#load "graphics.cma";;*)
 open Graphics;;
 open Printf;;
-open Unix;;
+open Thread;;
 
 let block_size = 10;;
 let block_padding = 2;;
@@ -90,8 +90,9 @@ let update world =
 let wait_end_of_lap world =
   let now = Unix.gettimeofday () in 
   let wait_time = (world.last_refresh +. (lap_length *. 1000.) -. now) in
-  Unix.select [] [] [] ( if wait_time >= 0. then (wait_time /. 1000000.) else 0. ) ;
-    { world with last_refresh = now };;
+  if wait_time >= 0. then 
+    Thread.delay (wait_time /. 1000000.);
+  { world with last_refresh = now };;
 
 let draw_world world = 
   clear_graph ();
