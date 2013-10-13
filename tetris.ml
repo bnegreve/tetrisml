@@ -12,8 +12,8 @@ open Printf;;
 
 let block_size = 10;;
 let block_padding = 2;;
-let screen_width = 640;;
-let screen_height = 480;;
+let screen_width = block_size * 10;;
+let screen_height = block_size * 18;;
 let lap_length = 1.; (* in sec *)
   
 type block_pos = {x: int; y: int};;
@@ -173,7 +173,8 @@ let draw_world world =
 
 let create_world () = 
   Random.self_init ();
-  open_graph " 640x480";
+  open_graph " ";
+  resize_window screen_width screen_height;
   {
     current_piece = make_a_piece (Random.int 7);
     lap_start = get_time_now ();
