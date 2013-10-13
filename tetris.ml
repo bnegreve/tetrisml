@@ -135,11 +135,11 @@ let get_time_now () =
 let update_world_with_input world () =
   let event = Graphics.wait_next_event [ Graphics.Poll ] in
   if event.Graphics.keypressed then
-    match read_key () with
-      'd' -> set_redraw {world with current_piece = (move_piece_right world.current_piece)}
-    |'q' -> set_redraw {world with current_piece = (move_piece_left world.current_piece)}
-    |'s' -> set_redraw {world with current_piece = (rotate_piece world.current_piece)}
-    | x -> world
+    match (read_key ()) with
+     'd'      -> set_redraw {world with current_piece = (move_piece_right world.current_piece)}
+    |'a'|'q'  -> set_redraw {world with current_piece = (move_piece_left world.current_piece)}
+    |'s'      -> set_redraw {world with current_piece = (rotate_piece world.current_piece)}
+    | x       -> world
   else
     world;;
 
