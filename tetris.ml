@@ -18,7 +18,7 @@ let block_size = 10;;
 let block_padding = 2;;
 let screen_width = 640;; 
 let screen_height = 480;;
-let lap_length = 0.1; (* in sec *)
+let lap_length = 1.; (* in sec *)
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
 
@@ -28,6 +28,7 @@ type piece =
 type world = {
   current_piece: piece;
   lap_start: float; 
+  redraw: bool; 
 };;
 
 let get_absolute_coords origin point = 
@@ -38,7 +39,7 @@ let get_pixel_coords pos =
     y_pixel = (screen_height - block_size) - (pos.y * block_size); };;
   
 let draw_block_with_pixel_coords x y = 
-  Printf.printf "Pos: [%d, %d]\n" x y;
+  (* Printf.printf "Pos: [%d, %d]\n" x y; *)
   draw_rect x y block_size block_size; 
   fill_rect (x + block_padding) (y + block_padding) 
     (block_size - (2 * block_padding)) (block_size - (2 * block_padding));;
@@ -47,7 +48,7 @@ let print_pos pos =
   Printf.printf "Pos: [%d, %d]\n" pos.x pos.y;;
 
 let draw_block pos =
-  print_pos pos;
+  (* print_pos pos; *)
   let pixel_pos = get_pixel_coords pos in 
   draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
 
@@ -77,20 +78,38 @@ let draw_piece piece =
   set_color piece.color; 
   draw_block_list piece.pos piece.blocks;;
 
-let push_piece_down piece = 
+let move_piece_down piece = 
   {piece with pos
     = { piece.pos with y = (piece.pos.y + 1)}};;
 
+let move_piece_right piece =
+  {piece with pos
+    = { piece.pos with x = (piece.pos.x + 1)}};;
+
+let move_piece_left piece =
+  {piece with pos
+    = { piece.pos with x = (piece.pos.x - 1)}};;
+
 let get_time_now () = 
   Unix.gettimeofday ();;
-    
+
+let get_input world () =
+  let event = Graphics.wait_next_event [ Graphics.Poll ] in
+  if event.Graphics.keypressed then
+    match read_key () with
+      'd' -> {world with current_piece = (move_piece_right world.current_piece); redraw = true}
+    |'q' -> {world with current_piece = (move_piece_left world.current_piece); redraw = true}
+    | x -> world
+  else
+    world;;
+
+let drop_piece world = 
+  { world with current_piece = (move_piece_down world.current_piece) }
 
 let update world =
-  let now = get_time_now () in
-  { world with
-    lap_start = now;
-    current_piece = push_piece_down world.current_piece;
-  };;
+  let new_world = (get_input world ()) in
+  new_world;;
+
 
 (* Wait until the global clock reaches time (in s from beginning of
    Unix time) *)
@@ -105,14 +124,17 @@ let rec wait_until time =
   else
    fprintf stderr "Warning: frame delayed (time diff: %f sec.)\n" wait_time;;
 
-let finilize_lap world =
-  wait_until (world.lap_start +. lap_length);
-  world;;
-
 let draw_world world =
   clear_graph ();
   draw_piece world.current_piece;
-  world;; 
+  {world with redraw = false};; 
+
+let finilize_lap world =
+  let now = get_time_now () in  
+  if ( now >= world.lap_start +. lap_length) then
+    draw_world (drop_piece {world with lap_start = now})
+  else
+    if world.redraw then draw_world world else world;;
 
 (* MAIN *)
 
@@ -120,8 +142,8 @@ open_graph " 640x480";;
 let  world = ref {
   current_piece = make_a_piece;
   lap_start = get_time_now ();
+  redraw = true;
 } in while true do
-    printf "New lap\n";
-    world := finilize_lap (draw_world (update !world))
+    world := finilize_lap (update !world)
   done;;
 
