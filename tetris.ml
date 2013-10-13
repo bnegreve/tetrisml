@@ -60,16 +60,53 @@ let make_square_shaped_piece =
 let make_l_shaped_piece =
   { pos = {x = 0; y = 0};
     blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = 1; y = 1}::[]; 
+    color = black; };;
+
+let make_rl_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = -1; y = 1}::[]; 
     color = blue; };;
+
+let make_t_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = 0}::{x = -1; y = 0}::{x = 1; y = 0}::{x = 0; y = 1}::[]; 
+    color = green; };;
+
+let make_s_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = 1; y = 0}::{x = 1; y = 1}::[]; 
+    color = green; };;
+
+let make_rs_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = -1; y = 0}::{x = -1; y = 1}::[]; 
+    color = green; };;
+
+let make_rs_shaped_piece =
+  { pos = {x = 0; y = 0};
+    blocks = {x = 0; y = 0}::{x = 0; y = -2}::{x = 0; y = -1}::{x = 0; y = 1}::[]; 
+    color = green; };;
 
 let make_single_block_piece =
   { pos = {x = 0; y = 0};
     blocks = {x = 0; y = 0}::[]; 
-    color = red; };;
+    color = black; };;
 
-let make_a_piece = 
-  make_l_shaped_piece;;
+let make_a_piece pieceid =
+  match pieceid with 
+    0 -> make_l_shaped_piece
+  | 1 -> make_rl_shaped_piece 
+  | 2 -> make_square_shaped_piece
+  | 3 -> make_s_shaped_piece
+  | 4 -> make_rs_shaped_piece
+  | 5 -> make_t_shaped_piece
+  | 6 -> make_l_shaped_piece
+  | x -> make_l_shaped_piece;;
 
+let rotate_piece piece = 
+  {piece with blocks = 
+      List.map (function block -> { x = block.y; y = -block.x}) piece.blocks};;
+    
 let rec draw_block_list pos blocks =
   List.map (function block -> draw_block (get_absolute_coords pos block)) blocks;;
 
@@ -99,6 +136,7 @@ let get_input world () =
     match read_key () with
       'd' -> {world with current_piece = (move_piece_right world.current_piece); redraw = true}
     |'q' -> {world with current_piece = (move_piece_left world.current_piece); redraw = true}
+    |'s' -> {world with current_piece = (rotate_piece world.current_piece); redraw = true}
     | x -> world
   else
     world;;
@@ -137,10 +175,11 @@ let finilize_lap world =
     if world.redraw then draw_world world else world;;
 
 (* MAIN *)
-
-open_graph " 640x480";;
+(* Random.init (int_of_float(get_time_now ()));; *)
+Random.self_init ();
+open_graph " 640x480";
 let  world = ref {
-  current_piece = make_a_piece;
+  current_piece = make_a_piece (Random.int 7);
   lap_start = get_time_now ();
   redraw = true;
 } in while true do
