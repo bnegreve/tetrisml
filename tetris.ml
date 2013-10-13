@@ -13,13 +13,12 @@
 (*#load "graphics.cma";;*)
 open Graphics;;
 open Printf;;
-open Thread;;
 
 let block_size = 10;;
 let block_padding = 2;;
 let screen_width = 640;; 
 let screen_height = 480;;
-let lap_length = 1000.; (* in ms *)
+let lap_length = 0.1; (* in sec *)
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
 
@@ -28,7 +27,7 @@ type piece =
 
 type world = {
   current_piece: piece;
-  last_refresh: float; 
+  lap_start: float; 
 };;
 
 let get_absolute_coords origin point = 
@@ -82,19 +81,35 @@ let push_piece_down piece =
   {piece with pos
     = { piece.pos with y = (piece.pos.y + 1)}};;
 
+let get_time_now () = 
+  Unix.gettimeofday ();;
+    
+
 let update world =
-  { world with 
+  let now = get_time_now () in
+  { world with
+    lap_start = now;
     current_piece = push_piece_down world.current_piece;
   };;
 
-let wait_end_of_lap world =
-  let now = Unix.gettimeofday () in 
-  let wait_time = (world.last_refresh +. (lap_length *. 1000.) -. now) in
-  if wait_time >= 0. then 
-    Thread.delay (wait_time /. 1000000.);
-  { world with last_refresh = now };;
+(* Wait until the global clock reaches time (in s from beginning of
+   Unix time) *)
+let rec wait_until time =
+  let now = get_time_now () in 
+  let wait_time = (time -. now) in
+  (* fprintf stderr "WAIT TIME %f sec.\n" wait_time; *)
+  if wait_time > 0.000125 then
+    try
+      Thread.delay wait_time
+    with Unix.Unix_error (Unix.EAGAIN, _, _) -> wait_until time 
+  else
+   fprintf stderr "Warning: frame delayed (time diff: %f sec.)\n" wait_time;;
 
-let draw_world world = 
+let finilize_lap world =
+  wait_until (world.lap_start +. lap_length);
+  world;;
+
+let draw_world world =
   clear_graph ();
   draw_piece world.current_piece;
   world;; 
@@ -103,10 +118,10 @@ let draw_world world =
 
 open_graph " 640x480";;
 let  world = ref {
-  current_piece = make_a_piece; 
-  last_refresh = 0.; 
+  current_piece = make_a_piece;
+  lap_start = get_time_now ();
 } in while true do
-    printf "New lap\n"; 
-    world := wait_end_of_lap (draw_world (update !world))
+    printf "New lap\n";
+    world := finilize_lap (draw_world (update !world))
   done;;
 
