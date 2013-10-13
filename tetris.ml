@@ -5,12 +5,8 @@
 *  Login   <benjamin@neb.dyn.cs.kuleuven.be>
 *
 *  Started on  Sat Oct 12 14:23:30 2013 Benjamin Negrevergne
-*  Last update Sat Oct 12 14:23:30 2013 Benjamin Negrevergne
 *)
 
-
-(* To compile this example: ocamlc graphics.cma grtest1.ml -o grtest1 *)
-(*#load "graphics.cma";;*)
 open Graphics;;
 open Printf;;
 
@@ -148,7 +144,6 @@ let update world =
   let new_world = (get_input world ()) in
   new_world;;
 
-
 (* Wait until the global clock reaches time (in s from beginning of
    Unix time) *)
 let rec wait_until time =
@@ -174,15 +169,14 @@ let finilize_lap world =
   else
     if world.redraw then draw_world world else world;;
 
-(* MAIN *)
-(* Random.init (int_of_float(get_time_now ()));; *)
-Random.self_init ();
-open_graph " 640x480";
-let  world = ref {
-  current_piece = make_a_piece (Random.int 7);
-  lap_start = get_time_now ();
-  redraw = true;
-} in while true do
-    world := finilize_lap (update !world)
-  done;;
+let main = 
+  Random.self_init ();
+  open_graph " 640x480";
+  let  world = ref {
+    current_piece = make_a_piece (Random.int 7);
+    lap_start = get_time_now ();
+    redraw = true;
+  } in while true do
+      world := finilize_lap (update !world)
+    done;;
 
