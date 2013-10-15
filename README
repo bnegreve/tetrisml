@@ -1,0 +1,23 @@
+Tetris clone game in OCaml (incomplete at this point)
+
+All pure functional (except drawing functions)
+
+Compile & run
+$> make
+$> ./tetris
+
+controls: 
+Q (or A) : move left
+D        : move right
+S	 : rotate CCW
+
+TODO: 
+
+- Detect collision between blocks 
+- Delete completed lines
+- Improve rotation algorithm 
+- Detect collision during rotation
+- Use a real timer (impossible with the graphic module)
+
+Author: Benjamin Negrevergne
+License: GPLv3
