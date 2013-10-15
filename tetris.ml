@@ -39,27 +39,12 @@ let set_redraw world =
 let get_absolute_coords origin point = 
   {x = (origin.x + point.x); y = (origin.y + point.y)};;
 
-let get_pixel_coords pos = 
-  { x_pixel = (pos.x * block_size);
-    y_pixel = (screen_height - block_size) - (pos.y * block_size); };;
-  
-let draw_block_with_pixel_coords x y = 
-  (* Printf.printf "Pos: [%d, %d]\n" x y; *)
-  draw_rect x y block_size block_size; 
-  fill_rect (x + block_padding) (y + block_padding) 
-    (block_size - (2 * block_padding)) (block_size - (2 * block_padding));;
-
 let print_pos pos = 
   Printf.printf "Pos: [%d, %d]\n" pos.x pos.y;;
 
 let print_world world = 
   Printf.printf "lap_start %f, redraw %B\n" world.lap_start world.redraw; 
 world;;
-
-let draw_block pos =
-  (* print_pos pos; *)
-  let pixel_pos = get_pixel_coords pos in 
-  draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
 
 let make_square_shaped_piece =
   { pos = {x = h_center; y = 0};
@@ -115,15 +100,6 @@ let make_a_piece pieceid =
 let rotate_piece piece = 
   {piece with blocks = 
       List.map (function block -> { x = block.y; y = -block.x}) piece.blocks};;
-    
-let rec draw_block_list pos blocks =
-  List.map (function block -> draw_block (get_absolute_coords pos block)) blocks;;
-
-  
-let draw_piece piece = 
-  set_color piece.color; 
-  draw_block_list piece.pos piece.blocks;;
-
 
 let check_collision_with_other_blocks block direction = 
   NO_COLLISION;;
@@ -137,7 +113,7 @@ let rec check_edge_collision block_list direction =
 	else check_edge_collision tail direction 
     | RIGHT -> if head.x > right_edge then RIGHT
       else check_edge_collision tail direction 
-    | DOWN -> if head.y >x bottom_edge then DOWN
+    | DOWN -> if head.y > bottom_edge then DOWN
       else check_edge_collision tail direction 
     | default -> NO_COLLISION;;
 
@@ -201,6 +177,44 @@ let rec wait_until time =
   else
    fprintf stderr "Warning: frame delayed (time diff: %f sec.)\n" wait_time;;
 
+
+(*** Drawing functions ***)
+
+
+
+let get_pixel_coords pos = 
+  { x_pixel = (pos.x * block_size);
+    y_pixel = (screen_height - block_size) - (pos.y * block_size); };;
+  
+let draw_block_with_pixel_coords x y = 
+  (* Printf.printf "Pos: [%d, %d]\n" x y; *)
+  draw_rect x y block_size block_size; 
+  fill_rect (x + block_padding) (y + block_padding) 
+    (block_size - (2 * block_padding)) (block_size - (2 * block_padding));;
+
+let draw_block pos =
+  (* print_pos pos; *)
+  let pixel_pos = get_pixel_coords pos in 
+  draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
+
+let rec draw_block_list pos blocks =
+  List.map (function block -> draw_block (get_absolute_coords pos block)) blocks;;
+
+let draw_piece piece  = 
+  set_color piece.color; 
+  draw_block_list piece.pos piece.blocks;;
+
+let draw_frame  = 
+  set_color black;
+  let a = get_pixel_coords({x = left_edge; y = 0}) in 
+  let b = get_pixel_coords({x =  left_edge; y = bottom_edge}) in 
+  let c = get_pixel_coords({x = right_edge; y = bottom_edge}) in 
+  let d = get_pixel_coords({x = right_edge; y = 0}) in 
+  draw_poly [| (a.x_pixel , a.y_pixel) ; 
+	       (b.x_pixel , b.y_pixel) ; 
+	       (c.x_pixel , c.y_pixel) ; 
+	       (d.x_pixel , d.y_pixel) |];;
+
 let draw_world world =
   if world.redraw then 
     (clear_graph ();
@@ -208,6 +222,10 @@ let draw_world world =
      {world with redraw = false})
   else 
     world;; 
+
+
+(*** Main functions ***)
+
 
 let create_world () = 
   Random.self_init ();
@@ -232,8 +250,8 @@ let finilize_lap world =
   else
     world;;
 
-let rec run world = 
-  run (draw_world (finilize_lap (update_world (start_lap world))));;
+let rec run world = world;;
+  (* run (draw_world (finilize_lap (update_world (start_lap world))));; *)
 
 let main = 
   run (create_world ())
