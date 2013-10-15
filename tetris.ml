@@ -28,6 +28,7 @@ type collision = NO_COLLISION|LEFT|RIGHT|UP|DOWN;;
 
 type world = {
   current_piece: piece;
+  stacked_blocks: block_pos list;
   lap_start: float; 
   redraw: bool; 
 };;
@@ -122,9 +123,24 @@ let check_piece_collision piece direction =
       piece.blocks in 
   check_edge_collision block_list direction;;
 
-let move_piece_down piece = 
-  {piece with pos
-    = { piece.pos with y = (piece.pos.y + 1)}};;
+let stack_blocks stacked_block_list blocks =
+  List.fold_left (fun acc x -> x :: acc) stacked_block_list blocks;;
+
+let stack_piece stacked_blocks piece =
+  let piece_blocks_list = 
+    List.map (fun block -> get_absolute_coords piece.pos block) 
+      piece.blocks in 
+  stack_blocks stacked_blocks piece_blocks_list;;
+
+let drop_piece world =
+  let piece = world.current_piece in 
+  let moved_piece = {piece with pos = {piece.pos with y = piece.pos.y + 1}} in 
+  if (check_piece_collision moved_piece DOWN) == DOWN then 
+    {world with 
+      stacked_blocks = stack_piece world.stacked_blocks piece; 
+      current_piece = make_a_piece (Random.int 7)}
+  else 
+    {world with current_piece = moved_piece}
 
 let move_piece_right piece =
   let new_piece = {piece with pos
@@ -155,9 +171,6 @@ let update_world_with_input world () =
     | x       -> world
   else
     world;;
-
-let drop_piece world = 
-  set_redraw { world with current_piece = (move_piece_down world.current_piece) }
 
 let update_world world =
   let new_world = (update_world_with_input world ()) in
@@ -196,12 +209,13 @@ let draw_block pos =
   let pixel_pos = get_pixel_coords pos in 
   draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
 
-let rec draw_block_list pos blocks =
-  List.map (function block -> draw_block (get_absolute_coords pos block)) blocks;;
+let rec draw_block_list blocks =
+  List.map draw_block blocks;;
 
 let draw_piece piece  = 
   set_color piece.color; 
-  draw_block_list piece.pos piece.blocks;;
+  draw_block_list (List.map (fun block -> get_absolute_coords piece.pos block) 
+		     piece.blocks);;
 
 let draw_frame () = 
   set_color black;
@@ -218,6 +232,7 @@ let draw_world world =
   if world.redraw then 
     (clear_graph ();
      draw_frame ();
+     draw_block_list world.stacked_blocks;
      draw_piece world.current_piece;
      {world with redraw = false})
   else 
@@ -233,6 +248,7 @@ let create_world () =
   resize_window screen_width screen_height;
   {
     current_piece = make_a_piece (Random.int 7);
+    stacked_blocks = [];
     lap_start = get_time_now ();
     redraw = true;
   };;
@@ -246,7 +262,7 @@ let reset_lap_start world =
 let finilize_lap world =
   let now = get_time_now () in  
   if ( now >= world.lap_start +. lap_length) then
-    reset_lap_start (drop_piece world)
+    reset_lap_start (set_redraw (drop_piece world))
   else
     world;;
 
