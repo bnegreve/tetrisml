@@ -10,7 +10,7 @@
 open Graphics;;
 open Printf;;
 
-let block_size = 30;;
+let block_size = 10;;
 let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
