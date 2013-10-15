@@ -18,7 +18,6 @@ let lap_length = 1.;; (* in sec *)
 let left_edge = 1;; 
 let right_edge = 10;; 
 let bottom_edge = 18;;
-
 let h_center = (right_edge - left_edge) / 2;;
 
 type block_pos = {x: int; y: int};;
@@ -76,7 +75,7 @@ let make_rs_shaped_piece =
     blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = -1; y = 0}::{x = -1; y = 1}::[]; 
     color = green; };;
 
-let make_rs_shaped_piece =
+let make_line_shaped_piece =
   { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = 0; y = -2}::{x = 0; y = -1}::{x = 0; y = 1}::[]; 
     color = green; };;
@@ -94,7 +93,7 @@ let make_a_piece pieceid =
   | 3 -> make_s_shaped_piece
   | 4 -> make_rs_shaped_piece
   | 5 -> make_t_shaped_piece
-  | 6 -> make_l_shaped_piece
+  | 6 -> make_line_shaped_piece
   | x -> make_l_shaped_piece;;
 
 let rotate_piece piece = 
