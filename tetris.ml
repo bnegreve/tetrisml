@@ -12,14 +12,21 @@ open Printf;;
 
 let block_size = 10;;
 let block_padding = 2;;
-let screen_width = block_size * 10;;
-let screen_height = block_size * 18;;
-let lap_length = 1.; (* in sec *)
-  
+let screen_width = block_size * 12;;
+let screen_height = block_size * 20;;
+let lap_length = 1.;; (* in sec *)
+let left_edge = 1;; 
+let right_edge = 10;; 
+let bottom_edge = 18;;
+
+let h_center = (right_edge - left_edge) / 2;;
+
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
 type piece = 
   { pos: block_pos; blocks: block_pos list; color: int};;
+type collision = NO_COLLISION|LEFT|RIGHT|UP|DOWN;;
+
 type world = {
   current_piece: piece;
   lap_start: float; 
@@ -55,42 +62,42 @@ let draw_block pos =
   draw_block_with_pixel_coords pixel_pos.x_pixel pixel_pos.y_pixel;;
 
 let make_square_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = 1; y = 0}::{x = 1; y = 1}::{x = 0; y = 1}::[]; 
     color = red; };;
 
 let make_l_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = 1; y = 1}::[]; 
     color = black; };;
 
 let make_rl_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = -1; y = 1}::[]; 
     color = blue; };;
 
 let make_t_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = -1; y = 0}::{x = 1; y = 0}::{x = 0; y = 1}::[]; 
     color = green; };;
 
 let make_s_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = 1; y = 0}::{x = 1; y = 1}::[]; 
     color = green; };;
 
 let make_rs_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = -1; y = 0}::{x = -1; y = 1}::[]; 
     color = green; };;
 
 let make_rs_shaped_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::{x = 0; y = -2}::{x = 0; y = -1}::{x = 0; y = 1}::[]; 
     color = green; };;
 
 let make_single_block_piece =
-  { pos = {x = 0; y = 0};
+  { pos = {x = h_center; y = 0};
     blocks = {x = 0; y = 0}::[]; 
     color = black; };;
 
@@ -117,17 +124,48 @@ let draw_piece piece =
   set_color piece.color; 
   draw_block_list piece.pos piece.blocks;;
 
+
+let check_collision_with_other_blocks block direction = 
+  NO_COLLISION;;
+
+let rec check_edge_collision block_list direction =
+  match block_list with 
+    [] -> NO_COLLISION
+  | head :: tail -> 
+    match direction with 
+      LEFT -> if head.x < left_edge then LEFT
+	else check_edge_collision tail direction 
+    | RIGHT -> if head.x > right_edge then RIGHT
+      else check_edge_collision tail direction 
+    | DOWN -> if head.y >x bottom_edge then DOWN
+      else check_edge_collision tail direction 
+    | default -> NO_COLLISION;;
+
+let check_piece_collision piece direction =
+  let block_list =
+    List.map (function block -> {x = piece.pos.x + block.x ; y = piece.pos.y + block.y})
+      piece.blocks in 
+  check_edge_collision block_list direction;;
+
 let move_piece_down piece = 
   {piece with pos
     = { piece.pos with y = (piece.pos.y + 1)}};;
 
 let move_piece_right piece =
-  {piece with pos
-    = { piece.pos with x = (piece.pos.x + 1)}};;
+  let new_piece = {piece with pos
+    = { piece.pos with x = (piece.pos.x + 1)}} in 
+  if (check_piece_collision new_piece RIGHT) == NO_COLLISION then 
+    new_piece 
+  else 
+    piece;;
 
 let move_piece_left piece =
-  {piece with pos
-    = { piece.pos with x = (piece.pos.x - 1)}};;
+  let new_piece = {piece with pos
+    = { piece.pos with x = (piece.pos.x - 1)}} in 
+  if (check_piece_collision new_piece LEFT) == NO_COLLISION then 
+    new_piece 
+  else 
+    piece;;
 
 let get_time_now () = 
   Unix.gettimeofday ();;
