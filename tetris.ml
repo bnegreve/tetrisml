@@ -10,7 +10,7 @@
 open Graphics;;
 open Printf;;
 
-let block_size = 10;;
+let block_size = 30;;
 let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
@@ -33,8 +33,7 @@ type world = {
   redraw: bool; 
 };;
 
-let set_redraw world = 
-  { world with redraw = true };;
+(*** Utility functions ***)
 
 let get_absolute_coords origin point = 
   {x = (origin.x + point.x); y = (origin.y + point.y)};;
@@ -45,6 +44,11 @@ let print_pos pos =
 let print_world world = 
   Printf.printf "lap_start %f, redraw %B\n" world.lap_start world.redraw; 
 world;;
+
+let set_redraw world = 
+  { world with redraw = true };;
+
+(*** Pieces description ***)
 
 let make_square_shaped_piece =
   { pos = {x = h_center; y = 0};
@@ -96,6 +100,8 @@ let make_a_piece pieceid =
   | 5 -> make_t_shaped_piece
   | 6 -> make_line_shaped_piece
   | x -> make_l_shaped_piece;;
+
+(*** Move pieces ***)
 
 let rotate_piece piece = 
   {piece with blocks = 
@@ -158,8 +164,7 @@ let move_piece_left piece =
   else 
     piece;;
 
-let get_time_now () = 
-  Unix.gettimeofday ();;
+(*** keyboard functions ***)
 
 let update_world_with_input world () =
   let event = Graphics.wait_next_event [ Graphics.Poll ] in
@@ -176,6 +181,11 @@ let update_world world =
   let new_world = (update_world_with_input world ()) in
   new_world;;
 
+(*** Timing functions ***) 
+
+let get_time_now () = 
+  Unix.gettimeofday ();;
+
 (* Wait until the global clock reaches time (in s from beginning of
    Unix time) *)
 let rec wait_until time =
@@ -191,8 +201,6 @@ let rec wait_until time =
 
 
 (*** Drawing functions ***)
-
-
 
 let get_pixel_coords pos = 
   { x_pixel = (pos.x * block_size);
