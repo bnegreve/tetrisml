@@ -203,20 +203,21 @@ let draw_piece piece  =
   set_color piece.color; 
   draw_block_list piece.pos piece.blocks;;
 
-let draw_frame  = 
+let draw_frame () = 
   set_color black;
-  let a = get_pixel_coords({x = left_edge; y = 0}) in 
-  let b = get_pixel_coords({x =  left_edge; y = bottom_edge}) in 
-  let c = get_pixel_coords({x = right_edge; y = bottom_edge}) in 
-  let d = get_pixel_coords({x = right_edge; y = 0}) in 
-  draw_poly [| (a.x_pixel , a.y_pixel) ; 
-	       (b.x_pixel , b.y_pixel) ; 
-	       (c.x_pixel , c.y_pixel) ; 
-	       (d.x_pixel , d.y_pixel) |];;
+  let a = get_pixel_coords({x = left_edge; y = -1}) in 
+  let b = get_pixel_coords({x = left_edge; y = bottom_edge}) in 
+  let c = get_pixel_coords({x = right_edge + 1; y = bottom_edge}) in 
+  let d = get_pixel_coords({x = right_edge + 1; y = -1}) in 
+  draw_poly_line [| (a.x_pixel , a.y_pixel) ; 
+		    (b.x_pixel , b.y_pixel) ; 
+		    (c.x_pixel , c.y_pixel) ; 
+		    (d.x_pixel , d.y_pixel) |];;
 
 let draw_world world =
   if world.redraw then 
     (clear_graph ();
+     draw_frame ();
      draw_piece world.current_piece;
      {world with redraw = false})
   else 
@@ -249,8 +250,8 @@ let finilize_lap world =
   else
     world;;
 
-let rec run world = world;;
-  (* run (draw_world (finilize_lap (update_world (start_lap world))));; *)
+let rec run world = 
+  run (draw_world (finilize_lap (update_world (start_lap world))));;
 
 let main = 
   run (create_world ())
