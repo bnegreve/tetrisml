@@ -33,7 +33,7 @@ type piece =
 let start_pos = { x = (right_edge - left_edge) / 2; 
 		  y = top_edge + 1 };;
 
-type collision = NO_COLLISION|LEFT|RIGHT|UP|DOWN;;
+type collision = NO_COLLISION|LEFT|RIGHT|UP|DOWN|ANY;;
 
 type world = {
   current_piece: piece;
@@ -112,50 +112,58 @@ let make_a_piece pieceid =
 
 (* Collision detection *)
 
-let block_space_is_empty world block_pos = 
+let block_collides world block_pos = 
   if block_pos.x < left_edge || block_pos.x > right_edge ||
-    block_pos.y > bottom_edge then 
-    false (* anything outside of the playable area is conceptually filled with blocks. *)
+    block_pos.y > bottom_edge || block_pos.y < top_edge then 
+    true (* anything outside of the playable area is conceptually filled with blocks. *)
   else
-    !(world.block_matrix).(block_pos.x - left_edge).(block_pos.y - top_edge) == 0;;
+    !(world.block_matrix).(block_pos.x - left_edge).(block_pos.y - top_edge) != 0;;
 
-let check_block_collision world block direction =
-  match direction with 
-    LEFT -> if(block_space_is_empty world { block with x = block.x - 1 }) 
-      then NO_COLLISION else LEFT
-  | RIGHT -> if(block_space_is_empty world { block with x = block.x + 1 }) 
-    then NO_COLLISION else RIGHT
-  | UP -> if(block_space_is_empty world { block with y = block.y - 1 }) 
-    then NO_COLLISION else UP
-  | DOWN -> if(block_space_is_empty world { block with y = block.y + 1 }) 
-    then NO_COLLISION else DOWN
-  | default -> NO_COLLISION;;
-  
-let rec check_collision world block_list direction =
+let rec block_list_collides world block_list = 
   match block_list with 
-    [] -> NO_COLLISION
-  | head :: tail -> if (check_block_collision world head direction) == NO_COLLISION then 
-      check_collision world tail direction
-    else direction;;
+    [] -> false
+  | head :: tail -> block_collides world head || block_list_collides world tail;;
 
-let check_piece_collision world piece direction =
+let piece_collides world piece =
   let block_list =
     List.map (function block -> {x = piece.pos.x + block.x ; y = piece.pos.y + block.y})
       piece.blocks in
-  check_collision world block_list direction;;
+  block_list_collides world block_list;;
 
 (*** Move pieces ***)
 
-let drop_new_piece world = {world with 
-  current_piece = make_a_piece (Random.int 7)}
+let translate_piece_x piece x = 
+  { piece with pos =
+    { piece.pos with x = piece.pos.x + x }}
 
-let rotate_piece piece = 
-  {piece with blocks = 
-      List.map (function block -> { x = block.y; y = -block.x}) piece.blocks};;
+let translate_piece_y piece y = 
+  { piece with pos =
+    { piece.pos with y = piece.pos.y + y }}
+
+let move_piece_right world piece =
+  let translated_piece = translate_piece_x world.current_piece 1 in
+    if not (piece_collides world translated_piece) then 
+      {world with current_piece = translated_piece}
+  else 
+      world;;
+
+let move_piece_left world piece =
+  let translated_piece = translate_piece_x world.current_piece (-1) in
+    if not (piece_collides world translated_piece) then 
+      {world with current_piece = translated_piece}
+    else 
+      world;;
+    
+let rotate_piece world piece = 
+  let rotated_piece ={piece with blocks = 
+      List.map (function block -> { x = block.y; y = -block.x}) piece.blocks} in 
+  if not (piece_collides world rotated_piece) then 
+    {world with current_piece = rotated_piece} else 
+    world;;
 
 let stack_block world block = 
   !(world.block_matrix).(block.x - left_edge).(block.y - top_edge) <- 1; 
-  world ;;
+  world;;
     
 let rec stack_blocks world block_list =
   match block_list with 
@@ -168,26 +176,15 @@ let stack_piece world piece =
       piece.blocks in
   stack_blocks world piece_blocks_list
 
+let drop_new_piece world = {world with 
+  current_piece = make_a_piece (Random.int 7)}
+    
 let drop_current_piece world =
-  let piece = world.current_piece in
-  if check_piece_collision world world.current_piece DOWN == NO_COLLISION then 
-    {world with current_piece = {piece with pos = {piece.pos with y = piece.pos.y + 1}}}
+  let translated_piece = translate_piece_y world.current_piece 1 in
+  if not (piece_collides world translated_piece) then 
+    {world with current_piece = translated_piece}
   else
-    drop_new_piece (stack_piece world piece);;
-
-let move_piece_right world piece =
-  if (check_piece_collision world piece RIGHT) == NO_COLLISION then
-    {world with current_piece = 
-	{piece with pos = { piece.pos with x = (piece.pos.x + 1)}}}
-  else 
-    world;;
-
-let move_piece_left world piece =
-  if (check_piece_collision world piece LEFT) == NO_COLLISION then
-    {world with current_piece = 
-	{piece with pos = { piece.pos with x = (piece.pos.x - 1)}}}
-  else 
-    world;;
+    drop_new_piece (stack_piece world world.current_piece);;
 
 (*** keyboard functions ***)
 
@@ -197,7 +194,7 @@ let update_world_with_input world () =
     match (read_key ()) with
      'd'      -> set_redraw (move_piece_right world world.current_piece)
     |'a'|'q'  -> set_redraw (move_piece_left world world.current_piece)
-    |'s'      -> set_redraw {world with current_piece = (rotate_piece world.current_piece)}
+    |'s'      -> set_redraw (rotate_piece world world.current_piece)
     | x       -> world
   else
     world;;
