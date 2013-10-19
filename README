@@ -1,7 +1,5 @@
 Tetris clone game in OCaml (incomplete at this point)
 
-All pure functional (except drawing functions)
-
 Compile & run
 $> make
 $> ./tetris
@@ -13,11 +11,13 @@ S	 : rotate CCW
 
 TODO: 
 
-- Detect collision between blocks 
 - Delete completed lines
 - Improve rotation algorithm 
 - Detect collision during rotation
 - Use a real timer (impossible with the graphic module)
+
+DONE
+- Detect collision between blocks 
 
 Author: Benjamin Negrevergne
 License: GPLv3
