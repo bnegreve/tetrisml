@@ -23,7 +23,7 @@ let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
 
-let lap_length = 0.5;; (* in sec *)
+let lap_length = 0.2;; (* in sec *)
 
 
 type block_pos = {x: int; y: int};;
@@ -199,6 +199,31 @@ let drop_current_piece world =
   else
     drop_new_piece (stack_piece world world.current_piece);;
 
+let rec is_a_line world line_id x =
+  if x == area_width then true 
+  else if !(world.block_matrix).(x).(line_id) == 0 then false
+  else is_a_line world line_id (x+1);;
+
+let rec find_all_lines world y =
+  if y == area_height then [] else
+    if is_a_line world y 0 then 
+      y :: (find_all_lines world (y + 1))
+    else find_all_lines world (y + 1);;
+
+let rec push_blocks_down world line_id =
+  printf "line_id %d" line_id;
+  let matrix = world.block_matrix in
+  if line_id > 0 then (
+    for i = 0 to (area_width-1) do
+      !matrix.(i).(line_id) <- !matrix.(i).(line_id-1)
+    done; push_blocks_down world (line_id - 1))
+ else ();;
+
+let remove_lines world = 
+  let all_lines = find_all_lines world 0 in
+  List.map (fun line_id -> push_blocks_down world line_id) all_lines; 
+  world;;
+  
 (*** keyboard functions ***)
 
 let update_world_with_input world () =
@@ -277,7 +302,7 @@ let draw_block_matrix block_matrix =
     for j = 0 to area_height - 1 do 
       if (!block_matrix.(i).(j)) != 0 then 
 	draw_block { x = i + left_edge; y = j + top_edge}
-    done 
+    done
   done; ();;
 
 let draw_world world =
@@ -313,7 +338,7 @@ let reset_lap_start world =
 let finilize_lap world =
   let now = get_time_now () in  
   if ( now >= world.lap_start +. lap_length) then
-    reset_lap_start (set_redraw (drop_current_piece world))
+    reset_lap_start (set_redraw (remove_lines (drop_current_piece world)))
   else
     world;;
 
