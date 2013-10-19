@@ -7,17 +7,19 @@ $> ./tetris
 controls: 
 Q (or A) : move left
 D        : move right
+W (or Z) : rotate CW
 S	 : rotate CCW
 
 TODO: 
 
 - Delete completed lines
 - Improve rotation algorithm 
-- Detect collision during rotation
 - Use a real timer (impossible with the graphic module)
+- Add score
 
 DONE
 - Detect collision between blocks 
+- Detect collision during rotation
 
 Author: Benjamin Negrevergne
 License: GPLv3

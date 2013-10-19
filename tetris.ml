@@ -153,10 +153,23 @@ let move_piece_left world piece =
       {world with current_piece = translated_piece}
     else 
       world;;
-    
-let rotate_piece world piece = 
-  let rotated_piece ={piece with blocks = 
-      List.map (function block -> { x = block.y; y = -block.x}) piece.blocks} in 
+
+let rotate_piece_cw piece =
+  {piece with blocks = 
+      List.map (function block -> { x = -block.y; y = block.x}) piece.blocks};;
+
+let rotate_piece_ccw piece =
+  {piece with blocks = 
+      List.map (function block -> { x = block.y; y = -block.x}) piece.blocks};;
+
+let rotate_the_piece_cw world piece = 
+  let rotated_piece = rotate_piece_cw world.current_piece in 
+  if not (piece_collides world rotated_piece) then 
+    {world with current_piece = rotated_piece} else 
+    world;;
+
+let rotate_the_piece_ccw world piece = 
+  let rotated_piece = rotate_piece_ccw world.current_piece in 
   if not (piece_collides world rotated_piece) then 
     {world with current_piece = rotated_piece} else 
     world;;
@@ -194,7 +207,8 @@ let update_world_with_input world () =
     match (read_key ()) with
      'd'      -> set_redraw (move_piece_right world world.current_piece)
     |'a'|'q'  -> set_redraw (move_piece_left world world.current_piece)
-    |'s'      -> set_redraw (rotate_piece world world.current_piece)
+    |'z'|'w'  -> set_redraw (rotate_the_piece_cw world world.current_piece)
+    |'s'      -> set_redraw (rotate_the_piece_ccw world world.current_piece)
     | x       -> world
   else
     world;;
