@@ -76,7 +76,7 @@ let make_square_shaped_piece =
 let make_l_shaped_piece =
   { pos = start_pos;
     blocks = {x = 0; y = -1}::{x = 0; y = 0}::{x = 0; y = 1}::{x = 1; y = 1}::[]; 
-    color = black; };;
+    color = magenta; };;
 
 let make_rl_shaped_piece =
   { pos = start_pos;
@@ -91,17 +91,17 @@ let make_t_shaped_piece =
 let make_s_shaped_piece =
   { pos = start_pos;
     blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = 1; y = 0}::{x = 1; y = 1}::[]; 
-    color = green; };;
+    color = cyan; };;
 
 let make_rs_shaped_piece =
   { pos = start_pos;
     blocks = {x = 0; y = 0}::{x = 0; y = -1}::{x = -1; y = 0}::{x = -1; y = 1}::[]; 
-    color = green; };;
+    color = magenta; };;
 
 let make_line_shaped_piece =
   { pos = start_pos;
     blocks = {x = -1; y = 0}::{x = 0; y = 0}::{x = 1; y = 0}::{x = 2; y = 0}::[]; 
-    color = green; };;
+    color = red; };;
 
 let make_single_block_piece =
   { pos = start_pos;
@@ -334,6 +334,7 @@ let draw_world world =
      draw_frame ();
      draw_block_matrix world.block_matrix;
      draw_piece world.current_piece;
+     draw_score world;
      {world with redraw = false})
   else 
     world;; 
@@ -344,6 +345,7 @@ let draw_world world =
 let create_world () = 
   Random.self_init ();
   open_graph " ";
+  set_window_title "tetrisML";
   resize_window screen_width screen_height;
   {
     current_piece = make_a_piece (Random.int 7);
