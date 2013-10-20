@@ -1,4 +1,4 @@
-Tetris clone game in OCaml (incomplete at this point)
+Minimalist Tetris clone in OCaml.
 
 Compile & run
 $> make
@@ -11,15 +11,15 @@ W (or Z) : rotate CW
 S	 : rotate CCW
 
 TODO: 
-
-- Delete completed lines
-- Improve rotation algorithm 
+- Fix rotation algorithm
 - Use a real timer (impossible with the graphic module)
-- Add score
+- Use double buffering 
 
 DONE
+- Delete completed lines
 - Detect collision between blocks 
 - Detect collision during rotation
+- Add score
 
 Author: Benjamin Negrevergne
 License: GPLv3
