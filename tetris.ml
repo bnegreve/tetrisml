@@ -335,6 +335,7 @@ let draw_world world =
      draw_block_matrix world.block_matrix;
      draw_piece world.current_piece;
      draw_score world;
+     synchronize (); 
      {world with redraw = false})
   else 
     world;; 
@@ -347,6 +348,7 @@ let create_world () =
   open_graph " ";
   set_window_title "tetrisML";
   resize_window screen_width screen_height;
+  auto_synchronize false;
   {
     current_piece = make_a_piece (Random.int 7);
     block_matrix = ref (Array.make_matrix area_width area_height 0);

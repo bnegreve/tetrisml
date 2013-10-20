@@ -11,15 +11,16 @@ W (or Z) : rotate CW
 S	 : rotate CCW
 
 TODO: 
+- Add block preview
 - Fix rotation algorithm
 - Use a real timer (impossible with the graphic module)
-- Use double buffering 
 
 DONE
 - Delete completed lines
 - Detect collision between blocks 
 - Detect collision during rotation
 - Add score
+- Enable double buffering 
 
 Author: Benjamin Negrevergne
 License: GPLv3
