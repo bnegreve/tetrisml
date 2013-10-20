@@ -39,8 +39,17 @@ type world = {
   current_piece: piece;
   block_matrix: int array array ref;
   lap_start: float; 
-  redraw: bool; 
+  redraw: bool;
+  line_count: int; 
+  score: int; 
 };;
+
+(*** Score ***)
+
+let score_function num_line = 
+  match num_line with 
+    4 -> 1000
+  | n -> n * 10;; 
 
 (*** Utility functions ***)
 
@@ -222,7 +231,10 @@ let rec push_blocks_down world line_id =
 let remove_lines world = 
   let all_lines = find_all_lines world 0 in
   List.map (fun line_id -> push_blocks_down world line_id) all_lines; 
-  world;;
+  {world with 
+    line_count = world.line_count + (List.length all_lines);
+    score = world.score + score_function (List.length all_lines)
+  } ;;
   
 (*** keyboard functions ***)
 
@@ -305,6 +317,17 @@ let draw_block_matrix block_matrix =
     done
   done; ();;
 
+let draw_score world =
+  set_color black;
+  let text_pos = get_pixel_coords ({x = left_edge; y = bottom_edge + 1}) in 
+  moveto text_pos.x_pixel (text_pos.y_pixel - 2);
+  draw_string (Printf.sprintf "l. %d" world.line_count);
+  let text_pos = 
+    get_pixel_coords ({x = (right_edge+4 - left_edge) / 2; y = bottom_edge + 1}) in 
+  moveto text_pos.x_pixel (text_pos.y_pixel - 2);
+  draw_string (Printf.sprintf "s. %d" world.score);
+  ();;
+
 let draw_world world =
   if world.redraw then 
     (clear_graph ();
@@ -327,6 +350,8 @@ let create_world () =
     block_matrix = ref (Array.make_matrix area_width area_height 0);
     lap_start = get_time_now ();
     redraw = true;
+    line_count = 0; 
+    score = 0; 
   };;
 
 let start_lap world = 
