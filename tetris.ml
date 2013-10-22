@@ -23,9 +23,8 @@ let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
 
-let lap_length = 0.5;; (* in sec *)
-
-let game_over_initial_count = 5; 
+let initial_lap_length = 0.5;; (* in sec *)
+let game_over_initial_count = 5;; 
 
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
@@ -40,6 +39,7 @@ type world = {
   current_piece: piece;
   block_matrix: int array array ref;
   lap_start: float; 
+  lap_length: float; 
   redraw: bool;
   line_count: int; 
   score: int; 
@@ -53,6 +53,10 @@ let score_function num_line =
   match num_line with 
     4 -> 1000
   | n -> n * 10;; 
+
+let game_speed num_line =
+  let lap_length = (initial_lap_length -. (0.03 *. float_of_int(num_line / 10))) in
+    if lap_length < 0.05 then 0.05 else lap_length;;
 
 (*** Utility functions ***)
 
@@ -239,16 +243,16 @@ let rec push_blocks_down world line_id =
 let remove_lines world = 
   let all_lines = find_all_lines world 0 in
   ignore (List.map (fun line_id -> push_blocks_down world line_id) all_lines);
-  {world with 
+  set_redraw({world with 
     line_count = world.line_count + (List.length all_lines);
     score = world.score + score_function (List.length all_lines)
-  } ;;
+  }) ;;
 
 let fill_line world line_id =
   let matrix = world.block_matrix in
   for i = 0 to (area_width-1) do
     !matrix.(i).(line_id) <- 1
-  done; ();; 
+  done; set_redraw world;; 
 
 (*** keyboard functions ***)
 
@@ -271,6 +275,9 @@ let get_time_now () =
 
 let reset_lap_start_timer world = 
   {world with lap_start = get_time_now ()};;
+
+let update_game_speed world = 
+  {world with lap_length = (game_speed world.line_count) };;
 
 (*** Drawing functions ***)
 
@@ -353,6 +360,7 @@ let create_world () = {
     current_piece = make_a_piece (Random.int 7);
     block_matrix = ref (Array.make_matrix area_width area_height 0);
     lap_start = get_time_now ();
+    lap_length = initial_lap_length;
     redraw = true;
     line_count = 0; 
     score = 0; 
@@ -365,19 +373,21 @@ let update_world world =
 
 let game_over world =
   if world.filling_height >= 0 then
-    (fill_line world world.filling_height; 
-     set_redraw (reset_lap_start_timer (
-       { world with filling_height = world.filling_height - 1})))
+    reset_lap_start_timer (
+      { (fill_line world world.filling_height) with 
+	filling_height = world.filling_height - 1;
+	lap_length = 0.05  
+      })
   else
     create_world ();;
 
 let finilize_lap world =
   let now = get_time_now () in  
-  if ( now >= world.lap_start +. lap_length) then
-    if world.game_over_count == 0 then 
-      game_over world
+  if ( now >= world.lap_start +. world.lap_length) then
+    if world.game_over_count != 0 then (* not game_over *)
+      reset_lap_start_timer (update_game_speed (remove_lines (drop_current_piece world)))
     else 
-      reset_lap_start_timer (set_redraw (remove_lines (drop_current_piece world)))
+      game_over world
   else
     world;;
 
