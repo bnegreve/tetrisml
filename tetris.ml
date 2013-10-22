@@ -220,7 +220,6 @@ let rec find_all_lines world y =
     else find_all_lines world (y + 1);;
 
 let rec push_blocks_down world line_id =
-  printf "line_id %d" line_id;
   let matrix = world.block_matrix in
   if line_id > 0 then (
     for i = 0 to (area_width-1) do
