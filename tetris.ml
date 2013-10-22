@@ -23,8 +23,9 @@ let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
 
-let lap_length = 0.2;; (* in sec *)
+let lap_length = 0.5;; (* in sec *)
 
+let game_over_initial_count = 5; 
 
 type block_pos = {x: int; y: int};;
 type pixel_pos = {x_pixel: int; y_pixel: int};;
@@ -42,7 +43,8 @@ type world = {
   redraw: bool;
   line_count: int; 
   score: int; 
-  game_over: bool; 
+  game_over_count: int; 
+  filling_height: int;
 };;
 
 (*** Score ***)
@@ -203,7 +205,7 @@ let drop_new_piece world =
   let new_piece = make_a_piece (Random.int 7) in 
     if piece_collides world new_piece then 
       { world with
-	game_over = true; 
+	game_over_count = world.game_over_count - 1;
 	current_piece = new_piece }
     else
       {world with current_piece = new_piece }
@@ -236,15 +238,21 @@ let rec push_blocks_down world line_id =
 
 let remove_lines world = 
   let all_lines = find_all_lines world 0 in
-  List.map (fun line_id -> push_blocks_down world line_id) all_lines; 
+  ignore (List.map (fun line_id -> push_blocks_down world line_id) all_lines);
   {world with 
     line_count = world.line_count + (List.length all_lines);
     score = world.score + score_function (List.length all_lines)
   } ;;
-  
+
+let fill_line world line_id =
+  let matrix = world.block_matrix in
+  for i = 0 to (area_width-1) do
+    !matrix.(i).(line_id) <- 1
+  done; ();; 
+
 (*** keyboard functions ***)
 
-let update_world_with_input world () =
+let update_world_with_input world =
   let event = Graphics.wait_next_event [ Graphics.Poll ] in
   if event.Graphics.keypressed then
     match (read_key ()) with
@@ -256,30 +264,13 @@ let update_world_with_input world () =
   else
     world;;
 
-let update_world world =
-  let new_world = (update_world_with_input world ()) in
-  new_world;;
-
-
-
 (*** Timing functions ***) 
 
 let get_time_now () = 
   Unix.gettimeofday ();;
 
-(* Wait until the global clock reaches time (in s from beginning of
-   Unix time) *)
-let rec wait_until time =
-  let now = get_time_now () in 
-  let wait_time = (time -. now) in
-  (* fprintf stderr "WAIT TIME %f sec.\n" wait_time; *)
-  if wait_time > 0.000125 then
-    try
-      Thread.delay wait_time
-    with Unix.Unix_error (Unix.EAGAIN, _, _) -> wait_until time 
-  else
-   fprintf stderr "Warning: frame delayed (time diff: %f sec.)\n" wait_time;;
-
+let reset_lap_start_timer world = 
+  {world with lap_start = get_time_now ()};;
 
 (*** Drawing functions ***)
 
@@ -303,8 +294,8 @@ let rec draw_block_list blocks =
 
 let draw_piece piece  = 
   set_color piece.color; 
-  draw_block_list (List.map (fun block -> get_absolute_coords piece.pos block) 
-		     piece.blocks);;
+  ignore (draw_block_list (List.map (fun block -> get_absolute_coords piece.pos block) 
+		     piece.blocks));;
 
 let draw_frame () = 
   set_color black;
@@ -351,6 +342,13 @@ let draw_world world =
 
 (*** Main functions ***)
 
+let init () = 
+  Random.self_init ();
+  open_graph " ";
+  set_window_title "tetrisML";
+  resize_window screen_width screen_height;
+  auto_synchronize false;;
+
 let create_world () = {
     current_piece = make_a_piece (Random.int 7);
     block_matrix = ref (Array.make_matrix area_width area_height 0);
@@ -358,35 +356,33 @@ let create_world () = {
     redraw = true;
     line_count = 0; 
     score = 0; 
-    game_over = false; 
+    game_over_count = game_over_initial_count; 
+    filling_height = area_height - 1; 
   };;
 
-let init () = 
-  Random.self_init ();
-  open_graph " ";
-  set_window_title "tetrisML";
-  resize_window screen_width screen_height;
-  auto_synchronize false; 
-  create_world ();;
+let update_world world =
+  update_world_with_input world;;
 
-let start_lap world = 
-  world;;
-
-let reset_lap_start world = 
-  {world with lap_start = get_time_now ()};;
+let game_over world =
+  if world.filling_height >= 0 then
+    (fill_line world world.filling_height; 
+     set_redraw (reset_lap_start_timer (
+       { world with filling_height = world.filling_height - 1})))
+  else
+    create_world ();;
 
 let finilize_lap world =
   let now = get_time_now () in  
   if ( now >= world.lap_start +. lap_length) then
-    if world.game_over then 
-      (create_world ())
+    if world.game_over_count == 0 then 
+      game_over world
     else 
-      reset_lap_start (set_redraw (remove_lines (drop_current_piece world)))
+      reset_lap_start_timer (set_redraw (remove_lines (drop_current_piece world)))
   else
     world;;
 
 let rec run world = 
-  run (draw_world (finilize_lap (update_world (start_lap world))));;
+  run (draw_world (finilize_lap (update_world world)));;
 
 let main = 
   init (); 
