@@ -42,6 +42,7 @@ type world = {
   redraw: bool;
   line_count: int; 
   score: int; 
+  game_over: bool; 
 };;
 
 (*** Score ***)
@@ -198,8 +199,14 @@ let stack_piece world piece =
       piece.blocks in
   stack_blocks world piece_blocks_list
 
-let drop_new_piece world = {world with 
-  current_piece = make_a_piece (Random.int 7)}
+let drop_new_piece world =
+  let new_piece = make_a_piece (Random.int 7) in 
+    if piece_collides world new_piece then 
+      { world with
+	game_over = true; 
+	current_piece = new_piece }
+    else
+      {world with current_piece = new_piece }
     
 let drop_current_piece world =
   let translated_piece = translate_piece_y world.current_piece 1 in
@@ -252,6 +259,8 @@ let update_world_with_input world () =
 let update_world world =
   let new_world = (update_world_with_input world ()) in
   new_world;;
+
+
 
 (*** Timing functions ***) 
 
@@ -342,20 +351,23 @@ let draw_world world =
 
 (*** Main functions ***)
 
-let create_world () = 
-  Random.self_init ();
-  open_graph " ";
-  set_window_title "tetrisML";
-  resize_window screen_width screen_height;
-  auto_synchronize false;
-  {
+let create_world () = {
     current_piece = make_a_piece (Random.int 7);
     block_matrix = ref (Array.make_matrix area_width area_height 0);
     lap_start = get_time_now ();
     redraw = true;
     line_count = 0; 
     score = 0; 
+    game_over = false; 
   };;
+
+let init () = 
+  Random.self_init ();
+  open_graph " ";
+  set_window_title "tetrisML";
+  resize_window screen_width screen_height;
+  auto_synchronize false; 
+  create_world ();;
 
 let start_lap world = 
   world;;
@@ -366,7 +378,10 @@ let reset_lap_start world =
 let finilize_lap world =
   let now = get_time_now () in  
   if ( now >= world.lap_start +. lap_length) then
-    reset_lap_start (set_redraw (remove_lines (drop_current_piece world)))
+    if world.game_over then 
+      (create_world ())
+    else 
+      reset_lap_start (set_redraw (remove_lines (drop_current_piece world)))
   else
     world;;
 
@@ -374,4 +389,5 @@ let rec run world =
   run (draw_world (finilize_lap (update_world (start_lap world))));;
 
 let main = 
+  init (); 
   run (create_world ())

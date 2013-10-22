@@ -21,6 +21,7 @@ DONE
 - Detect collision during rotation
 - Add score
 - Enable double buffering 
+- Add game over detection
 
 Author: Benjamin Negrevergne
 License: GPLv3
