@@ -5,11 +5,11 @@ $> make
 $> ./tetris
 
 controls: 
-Q (or A) : move left
-D        : move right
-W (or Z) : rotate CW
-S	 : rotate CCW
-
+Q (or A)   : move left
+D          : move right
+W (or Z)   : rotate CW
+S	   : rotate CCW
+SPC (or F) : drop piece
 TODO: 
 - Add block preview
 - Fix rotation algorithm

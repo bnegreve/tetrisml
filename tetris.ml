@@ -23,7 +23,8 @@ let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
 
-let initial_lap_length = 0.5;; (* in sec *)
+let initial_lap_length = 1.;; (* in sec *)
+let short_lap_length = 0.1;; 
 let game_over_initial_count = 5;; 
 
 type block_pos = {x: int; y: int};;
@@ -40,6 +41,7 @@ type world = {
   block_matrix: int array array ref;
   lap_start: float; 
   lap_length: float; 
+  old_lap_length: float;
   redraw: bool;
   line_count: int; 
   score: int; 
@@ -241,11 +243,13 @@ let rec push_blocks_down world line_id =
  else ();;
 
 let remove_lines world = 
-  let all_lines = find_all_lines world 0 in
-  ignore (List.map (fun line_id -> push_blocks_down world line_id) all_lines);
+  let newlines = find_all_lines world 0 in
+  ignore (List.map (fun line_id -> push_blocks_down world line_id) newlines);
+  let newlines_count =  (List.length newlines) in 
   set_redraw({world with 
-    line_count = world.line_count + (List.length all_lines);
-    score = world.score + score_function (List.length all_lines)
+    line_count = world.line_count + newlines_count;
+    score = world.score + score_function (newlines_count); 
+    lap_length = game_speed(world.line_count + newlines_count)
   }) ;;
 
 let fill_line world line_id =
@@ -253,6 +257,27 @@ let fill_line world line_id =
   for i = 0 to (area_width-1) do
     !matrix.(i).(line_id) <- 1
   done; set_redraw world;; 
+
+
+(*** Timing functions ***) 
+
+let get_time_now () = 
+  Unix.gettimeofday ();;
+
+let reset_lap_start_timer world = 
+  {world with lap_start = get_time_now ()};;
+
+let accelerate world = 
+  {world with
+    old_lap_length = world.lap_length;
+    lap_length = short_lap_length
+  };;
+
+let restore_speed world = 
+  { world with 
+    lap_length = world.old_lap_length;
+    old_lap_length = world.lap_length
+  };;
 
 (*** keyboard functions ***)
 
@@ -264,20 +289,10 @@ let update_world_with_input world =
     |'a'|'q'  -> set_redraw (move_piece_left world world.current_piece)
     |'z'|'w'  -> set_redraw (rotate_the_piece_cw world world.current_piece)
     |'s'      -> set_redraw (rotate_the_piece_ccw world world.current_piece)
-    | x       -> world
+    |' '|'f'  -> set_redraw (accelerate world)
+    | x       -> set_redraw (restore_speed world)
   else
-    world;;
-
-(*** Timing functions ***) 
-
-let get_time_now () = 
-  Unix.gettimeofday ();;
-
-let reset_lap_start_timer world = 
-  {world with lap_start = get_time_now ()};;
-
-let update_game_speed world = 
-  {world with lap_length = (game_speed world.line_count) };;
+    restore_speed(world);;
 
 (*** Drawing functions ***)
 
@@ -346,7 +361,6 @@ let draw_world world =
   else 
     world;; 
 
-
 (*** Main functions ***)
 
 let init () = 
@@ -361,6 +375,7 @@ let create_world () = {
     block_matrix = ref (Array.make_matrix area_width area_height 0);
     lap_start = get_time_now ();
     lap_length = initial_lap_length;
+    old_lap_length = initial_lap_length; 
     redraw = true;
     line_count = 0; 
     score = 0; 
@@ -376,7 +391,8 @@ let game_over world =
     reset_lap_start_timer (
       { (fill_line world world.filling_height) with 
 	filling_height = world.filling_height - 1;
-	lap_length = 0.05  
+	lap_length = short_lap_length;
+	old_lap_length = short_lap_length
       })
   else
     create_world ();;
@@ -385,7 +401,7 @@ let finilize_lap world =
   let now = get_time_now () in  
   if ( now >= world.lap_start +. world.lap_length) then
     if world.game_over_count != 0 then (* not game_over *)
-      reset_lap_start_timer (update_game_speed (remove_lines (drop_current_piece world)))
+      reset_lap_start_timer (remove_lines (drop_current_piece world))
     else 
       game_over world
   else
