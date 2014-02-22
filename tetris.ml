@@ -23,7 +23,7 @@ let block_padding = 2;;
 let screen_width = block_size * 12;;
 let screen_height = block_size * 20;;
 
-let initial_lap_length = 1.;; (* in sec *)
+let initial_lap_length = 0.1;; (* in sec *)
 let short_lap_length = 0.1;; 
 let game_over_initial_count = 5;; 
 
@@ -282,18 +282,14 @@ let restore_speed world =
 (*** keyboard functions ***)
 
 let update_world_with_input world =
-  let event = Graphics.wait_next_event [ Graphics.Poll ] in
-  if event.Graphics.keypressed then
-    match (read_key ()) with
+  match (read_key ~timeout:(int_of_float (world.lap_length *. 1000.)) ()) with
      'd'      -> set_redraw (move_piece_right world world.current_piece)
     |'a'|'q'  -> set_redraw (move_piece_left world world.current_piece)
     |'z'|'w'  -> set_redraw (rotate_the_piece_cw world world.current_piece)
     |'s'      -> set_redraw (rotate_the_piece_ccw world world.current_piece)
     |' '|'f'  -> set_redraw (accelerate world)
-    | x       -> set_redraw (restore_speed world)
-  else
-    restore_speed(world);;
-
+    | x       -> set_redraw (restore_speed world);;
+  
 (*** Drawing functions ***)
 
 let get_pixel_coords pos = 
